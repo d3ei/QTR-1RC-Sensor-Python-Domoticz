@@ -15,34 +15,43 @@ import requests
 import urllib
 import RPi.GPIO as GPIO
 import time
+import ConfigParser
 
 #
-# Vos paramètres
+# Configuration
 #
-domoticz_ip="192.168.1.40"
-domoticz_port="8080"
-dummy_idx={'counter': 58, 'switch':57} # les numéros de devices attribués par Domoticz: un compteur incrémental pour la conso et un interrupteur virtuel pour le détail
-IRPIN = 17 # branché sur la GPIO17
-HIGH_LEVEL = 0.00022 # niveau de declenchement haut
-LOW_LEVEL = 0.00019 # niveau de declenchement bas entre haut et bas il ne se passe rien :/
-VOLUME_INC = 0.1 # 1 = 10 litres, allez demander à Domoticz pourquoi ;)
-TIME_INTERVAL = 0.3 # temps entre deux interrogations du capteur, dépend de la vitesse de la roue du compteur
-DEBUG = True # Log plus ou moins d'infos, utile pour régler les niveaux haut et bas
-SCRIPT_PATH = '/home/pi/pyj/' # chemin de votre script
-SCRIPT_NAME = 'compteurEau' # nom de votre script sans l'extension .py
+config = ConfigParser.RawConfigParser()
+config.read("/home/pi/pyj/compteurEau.cfg")
 #
 #
 #
+
+domoticz_ip = config.get("domoticz", "domoticz_ip")
+domoticz_port = config.getint("domoticz", "domoticz_port")
+counter_idx = config.getint("domoticz", "counter_idx")
+switch_idx = config.getint("domoticz", "switch_idx")
+IRPIN = config.getint("capteur", "IRPIN")
+HIGH_LEVEL = config.getfloat("capteur", "HIGH_LEVEL")
+LOW_LEVEL = config.getfloat("capteur", "LOW_LEVEL")
+VOLUME_INC = config.getfloat("script", "VOLUME_INC")
+TIME_INTERVAL = config.getfloat("script", "TIME_INTERVAL")
+DEBUG = config.getboolean("script", "DEBUG")
+SCRIPT_PATH = config.get("script", "SCRIPT_PATH")
+SCRIPT_NAME = config.get("script", "SCRIPT_NAME")
 
 # Logger
-formatter_info = logging.Formatter("%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s")
-logger_info = logging.getLogger("info_log")
-handler_info = logging.handlers.RotatingFileHandler(SCRIPT_PATH + SCRIPT_NAME + "-info.log", mode="a", maxBytes= 1000000, backupCount= 3,encoding="utf-8")
-handler_info.setFormatter(formatter_info)
-logger_info.setLevel(logging.INFO)
-logger_info.addHandler(handler_info)
+formatLog = logging.Formatter("%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s")
+handlerLog = logging.handlers.RotatingFileHandler(SCRIPT_PATH + SCRIPT_NAME + ".log", mode="a", maxBytes= 1000000, backupCount= 3,encoding="utf-8")
+handlerLog.setFormatter(formatLog)
+loggerJ = logging.getLogger(SCRIPT_NAME)
+loggerJ.addHandler(handlerLog)
+if DEBUG:
+    loggerJ.setLevel(logging.DEBUG)
+else:
+    loggerJ.setLevel(logging.INFO)
 
-logger_info.info(SCRIPT_NAME + ' Started !!! ' + SCRIPT_PATH + SCRIPT_NAME + '.py')
+loggerJ.info(SCRIPT_NAME + ' Started !!! ' + SCRIPT_PATH + SCRIPT_NAME + '.py')
+loggerJ.debug('--------- DEBUG MODE STARTED ---------')
 
 IsFrontHigh = False
 FrontOnNb = 0
@@ -67,12 +76,10 @@ def IRSensor():
     # aucune idée du pourquoi mais par moment le 0 input ne passe pas et pulse_end non initialise
     if pulse_end != 0:
         pulse_duration = pulse_end - pulse_start
-        if DEBUG:
-            logger_info.info("duration: %s" % pulse_duration) # pour regler la sensibilite
+        loggerJ.debug("duration: %s" % pulse_duration) # pour regler la sensibilite
         # Durée supérieure au niveau haut
         if pulse_duration > HIGH_LEVEL:
-            if DEBUG:
-                logger_info.info("%s-->ON" % time.time())
+            loggerJ.debug("%s-->ON" % time.time())
             FrontOffNb = 0
             # on ne détecte que les changements de niveau bas à niveau haut
             if IsFrontHigh == True:
@@ -81,24 +88,23 @@ def IRSensor():
                 # Pour prendre en compte ce problème je vérifie deux valeurs hautes successives avant de rajouter une unité
                 if FrontOnNb == 1:
                     # ajoute une unité au compteur
-                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=udevice&idx='+str(dummy_idx['counter'])+'&svalue='+str(VOLUME_INC)
+                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=udevice&idx='+str(counter_idx)+'&svalue='+str(VOLUME_INC)
                     urllib.urlopen(requete)
                     # change l'état de l'interrupteur
-                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=switchlight&idx='+str(dummy_idx['switch'])+'&switchcmd=On&level=0'
+                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=On&level=0'
                     urllib.urlopen(requete)
                     IsFrontHigh = False
-                    logger_info.info("%s : 1 Unite" % time.ctime())
+                    loggerJ.info("%s : 1 Unite" % time.ctime())
                 else:
                     FrontOnNb = 1
         # Durée inférieure au niveau bas
         elif pulse_duration < LOW_LEVEL:
-            if DEBUG:
-                logger_info.info("%s-->OFF" % time.time())
+            loggerJ.debug("%s-->OFF" % time.time())
             FrontOnNb = 0
             if IsFrontHigh == False:
                 if FrontOffNb == 1:
                     # change l'état de l'interrupteur
-                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=switchlight&idx='+str(dummy_idx['switch'])+'&switchcmd=Off&level=0'
+                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=Off&level=0'
                     urllib.urlopen(requete)
                     IsFrontHigh = True
                 else:
@@ -111,9 +117,9 @@ if __name__ == '__main__':
             IRSensor()
             time.sleep(TIME_INTERVAL)
     except KeyboardInterrupt:
-        logger_info.info(SCRIPT_NAME + ' Stopped !!!')
+        loggerJ.info(SCRIPT_NAME + ' Stopped !!!')
     except:
-        logger_info.info(SCRIPT_NAME + ' Stopped no idea why !!!')
+        loggerJ.critical(SCRIPT_NAME + ' Stopped no idea why !!!')
         raise
     finally:
         GPIO.cleanup(IRPIN) # on nettoie la GPIO
