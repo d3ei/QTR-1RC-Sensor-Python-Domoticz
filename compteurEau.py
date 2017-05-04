@@ -88,10 +88,10 @@ def IRSensor():
                 # Pour prendre en compte ce problème je vérifie deux valeurs hautes successives avant de rajouter une unité
                 if FrontOnNb == 1:
                     # ajoute une unité au compteur
-                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=udevice&idx='+str(counter_idx)+'&svalue='+str(VOLUME_INC)
+                    requete='http://'+domoticz_ip+':'+str(domoticz_port)+'/json.htm?type=command&param=udevice&idx='+str(counter_idx)+'&svalue='+str(VOLUME_INC)
                     urllib.urlopen(requete)
                     # change l'état de l'interrupteur
-                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=On&level=0'
+                    requete='http://'+domoticz_ip+':'+str(domoticz_port)+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=On&level=0'
                     urllib.urlopen(requete)
                     IsFrontHigh = False
                     loggerJ.info("%s : 1 Unite" % time.ctime())
@@ -104,7 +104,7 @@ def IRSensor():
             if IsFrontHigh == False:
                 if FrontOffNb == 1:
                     # change l'état de l'interrupteur
-                    requete='http://'+domoticz_ip+':'+domoticz_port+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=Off&level=0'
+                    requete='http://'+domoticz_ip+':'+str(domoticz_port)+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=Off&level=0'
                     urllib.urlopen(requete)
                     IsFrontHigh = True
                 else:
