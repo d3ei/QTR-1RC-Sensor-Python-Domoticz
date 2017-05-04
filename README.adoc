@@ -1,0 +1,152 @@
+= Capteur QTR-1RC IR Sensor Python Domoticz
+Doc Writer <d3ei33@gmail.com>
+v1.0, 2017-05
+:toc:
+:toc-title: Pour aller vite
+:imagesdir: /images/
+
+Un petit script python pour prendre en charge un capteur IR https://www.pololu.com/product/2459[QTR-1RC] branché sur une GPIO de raspberry pi et relever des compteurs - eau et gaz dans mon cas - qui possède un demi-disque réflechissant. +
+Le résultat est envoyé dans Domoticz.
+
+== Avant de commencer
+
+Le truc est parti de l'envie de domotiser mes compteurs : eau, gaz et électricité. +
+Après avoir pensé à des solutions étranges à base de webcam et de reconnaissance de caractères, des solutions compliquées à mettre en oeuvre en intercalant des compteurs munis de détecteurs d'impulsions, des solutions trop onéreuses avec des capteurs d'impulsions "tout fait" à fixer sur les compteurs existants, j'ai fini par tomber sur des solutions vraiment pas chères à base de capteurs de réflectance. En cherchant un peu j'ai trouvé ce https://www.pololu.com/product/2459[QTR-1RC] qui a le gros avantage de pouvoir se brancher directement sur la raspberry pi : 5V, 0V et une GPIO :) sans passer par une carte supplémentaire type Arduino. +
+
+Comme il est écrit dans la doc, la séquence pour lire un tel capteur est la suivante :
+
+* Set the I/O line to an output and drive it high.
+
+[source,python]
+----
+GPIO.setup(IRPIN, GPIO.OUT)
+GPIO.output(IRPIN, GPIO.HIGH)
+----
+
+* Allow at least 10 μs for the sensor output to rise.
+
+[source,python]
+----
+time.sleep(0.01)
+----
+
+* Make the I/O line an input (high impedance).
+
+[source,python]
+----
+# pulse_start = time.time()
+GPIO.setup(IRPIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+----
+
+* Measure the time for the voltage to decay by waiting for the I/O line to go low.
+
+[source,python]
+----
+while GPIO.input(IRPIN)> 0:
+  pass # attente I/O passe à bas
+if  GPIO.input(IRPIN)<=0:
+  pulse_end = time.time()
+----
+
+Ce temps de passage de haut à bas dépend de la résistance du phototransistor et donc de la réflectance de la surface en vis à vis du capteur. On peut ainsi détecter chaque passage du demi-disque réflechissant devant le capteur, c'est à dire le nombre de tours de cette roue, et en déduire la consommation.
+
+== Ce qu'il faut
+
+Un capteur QTR-1RC, un port GPIO (pull-down) de libre (GPIO17 et GPIO18 dans mon cas) sur la raspberry pi avec Raspbian. Python 2.7 que je fais tourner dans un virtualenv mais ce n'est pas obligatoire. RPi.GPIO : la gestion des GPIO pour Python. Et enfin Domoticz pour visualiser la consommation.
+
+== Installation
+
+=== Sur la Raspberry pi
+
+* Il faut bien sûr brancher le capteur sur la raspberry pi : alim 5V, terre et une GPIO. Et pour faire des tests vous devrez le promener au dessus de surfaces de réflectances différentes.
+
+* Placez le script ou vous voulez sur votre raspverry pi
+
+[source,python]
+----
+/home/pi/pyj/
+----
+
+* Modifiez la ligne pour l'adapter à votre installation
+
+[source,python]
+----
+config.read("/home/pi/pyj/compteurGaz.cfg")
+----
+
+* Modifier le fichier compteurGaz.cfg
+* En activant le mode Debug dans le fichier de configuration,
+
+[source,python]
+----
+DEBUG: True
+----
+
+vous pouvez lancez un
+
+[source]
+----
+python compteurGaz.py
+----
+
+et observer le fichier de log qui affichera les temps de décharge du capteur et vous permettra de régler les deux valeurs de seuils :
+
+[source,python]
+----
+HIGH_LEVEL: 0.00017
+LOW_LEVEL: 0.00013
+----
+
+=== Dans Domoticz
+
+Dans "Réglages/Matériels", vous devez créer un "Dummy (Does nothing, use for virtual switches only)". Et y ajouter deux capteurs virtuels : un compteur incrémental et un interrupteur. Le premier sert à mesurer la consommation (dernières 24h, mois, années) et le second peut être utile pour voir plus finement la consommation.
+Dans la liste des dispositifs, relever les Idx des deux nouveaux dispositifs et modifiez le fichier de configuration :
+
+[source,python]
+----
+counter_idx: 89
+switch_idx: 90
+----
+
+Le compteur est mis à jour par :
+
+[source,python]
+----
+requete='http://'+domoticz_ip+':'+str(domoticz_port)+'/json.htm?type=command&param=udevice&idx='+str(counter_idx)+'&svalue='+str(VOLUME_INC)
+urllib.urlopen(requete)
+----
+
+et l'interrupteur par
+[source,python]
+----
+requete='http://'+domoticz_ip+':'+str(domoticz_port)+'/json.htm?type=command&param=switchlight&idx='+str(switch_idx)+'&switchcmd=On&level=0'
+urllib.urlopen(requete)
+----
+
+TIP: Pour lancer le script au démarrage du système, vous pouvez modifier votre fichier /etc/rc.local.
+
+== Contributions
+
+Vous pouvez lire ça si vous avez encore du temps https://gist.github.com/PurpleBooth/b24679402957c63ec426[CONTRIBUTING.md].
+
+== License
+
+GNU General Public License, mais alors vraiment faire plaisir à mon chat.
+
+== En plus ...
+
+Merci à https://gist.github.com/anonymous/aec125315e0229f51affac5eeb6c0bc1[Toby] pour son code qui m'a bien servi.
+
+Des infos sur la http://deusyss.developpez.com/tutoriels/RaspberryPi/PythonEtLeGpio/[gestion des GPIO].
+
+.Compteur avec demi disque
+image::compteur.jpg[]
+
+.Qtr-1RC Sensor
+image::qtr1rc.jpg[]
+
+.Raspberry Pi 3 : branchements
+image::rpi3.jpg[]
+
+.Domoticz : dispositifs
+image::domoticz.jpg[]
