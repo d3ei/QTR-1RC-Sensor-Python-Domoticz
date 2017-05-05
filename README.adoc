@@ -50,6 +50,7 @@ if  GPIO.input(IRPIN)<=0:
 
 Ce temps de passage de haut à bas dépend de la résistance du phototransistor et donc de la réflectance de la surface en vis à vis du capteur. On peut ainsi détecter chaque passage du demi-disque réflechissant devant le capteur, c'est à dire le nombre de tours de cette roue, et en déduire la consommation.
 
+
 == Ce qu'il faut
 
 Un capteur QTR-1RC, un port GPIO (pull-down) de libre (GPIO17 et GPIO18 dans mon cas) sur la raspberry pi avec Raspbian. Python 2.7 que je fais tourner dans un virtualenv mais ce n'est pas obligatoire. RPi.GPIO : la gestion des GPIO pour Python. Et enfin Domoticz pour visualiser la consommation.
@@ -150,3 +151,11 @@ image::rpi3.jpg[]
 
 .Domoticz : dispositifs
 image::domoticz.jpg[]
+
+== Améliorations
+
+J'ai rencontré deux problèmes lors des premières utilisations.
+
+Le premier sur la condition "GPIO.input(IRPIN)<=0" qui n'était de temps en temps jamais atteinte.
+
+Le second sur la boucle "while GPIO.input(IRPIN)> 0" qui restait bloquée sur le "pass". Il semble que la connexion de la GPIO IN à la résistance de pull-down ne se fasse pas toujours : "GPIO.setup(IRPIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)". Du coup j'ai modifié le "pass" en "i += 1" et limité le nombre max d'itérations dans le cas du blocage. Je l'ai fixé à 1000, ce qui dans mon cas est largement suffisant sur ma Raspberry pi qui fait plafonner le compteur à 80 dans les plus longs temps de décharge. Mais si jamais vous faites tourner sur un Xéon dernier cri il faudra peut-être augmenter cette valeur. Ou encore mieux, trouver d'où vient le problème ;).

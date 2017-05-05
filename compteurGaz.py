@@ -66,15 +66,19 @@ def IRSensor():
     GPIO.output(IRPIN, GPIO.HIGH)
     time.sleep(0.00001) # charge du noeud de sortie 
     pulse_end = 0
+    loggerJ.debug("IRPIN HIGH")
+    i = 0
     pulse_start = time.time() # demare le chrono
     GPIO.setup(IRPIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # relie l'entrée à la résistance de pull down 0v
-    while GPIO.input(IRPIN)> 0:
-        pass # attente de la charge à travers la photoresistance
+    while GPIO.input(IRPIN)> 0 and i <= 1000:
+        i += 1 # attente de la charge à travers la photoresistance
     if  GPIO.input(IRPIN)<=0:
         pulse_end = time.time() # inf ou egal a 0 on mesure le temps
+        loggerJ.debug("IRPIN: %s , iterations : %s" % (GPIO.input(IRPIN),i))
 
     # aucune idée du pourquoi mais par moment le 0 input ne passe pas et pulse_end non initialise
-    if pulse_end != 0:
+    # et le i pour vérifier que la GPIO n'est pas bloqué, je ne sais pas non plus pourquoi mais ça arrive
+    if pulse_end != 0 and i < 1000:
         pulse_duration = pulse_end - pulse_start
         loggerJ.debug("duration: %s" % pulse_duration) # pour regler la sensibilite
         # Durée supérieure au niveau haut
@@ -109,6 +113,8 @@ def IRSensor():
                     IsFrontHigh = True
                 else:
                     FrontOffNb = 1
+    if i >= 1000:
+        loggerJ.info('IRPIN bloque')
     return 0
 
 if __name__ == "__main__":
