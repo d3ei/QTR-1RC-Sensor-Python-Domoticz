@@ -16,47 +16,8 @@ import urllib
 import RPi.GPIO as GPIO
 import time
 import ConfigParser
-
-#
-# Configuration
-#
-config = ConfigParser.RawConfigParser()
-config.read("/home/pi/pyj/compteurGaz.cfg")
-#
-#
-#
-
-domoticz_ip = config.get("domoticz", "domoticz_ip")
-domoticz_port = config.getint("domoticz", "domoticz_port")
-counter_idx = config.getint("domoticz", "counter_idx")
-switch_idx = config.getint("domoticz", "switch_idx")
-IRPIN = config.getint("capteur", "IRPIN")
-HIGH_LEVEL = config.getfloat("capteur", "HIGH_LEVEL")
-LOW_LEVEL = config.getfloat("capteur", "LOW_LEVEL")
-VOLUME_INC = config.getfloat("script", "VOLUME_INC")
-TIME_INTERVAL = config.getfloat("script", "TIME_INTERVAL")
-DEBUG = config.getboolean("script", "DEBUG")
-SCRIPT_PATH = config.get("script", "SCRIPT_PATH")
-SCRIPT_NAME = config.get("script", "SCRIPT_NAME")
-
-# Logger
-formatLog = logging.Formatter("%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s")
-handlerLog = logging.handlers.RotatingFileHandler(SCRIPT_PATH + SCRIPT_NAME + ".log", mode="a", maxBytes= 1000000, backupCount= 3,encoding="utf-8")
-handlerLog.setFormatter(formatLog)
-loggerJ = logging.getLogger(SCRIPT_NAME)
-loggerJ.addHandler(handlerLog)
-if DEBUG:
-    loggerJ.setLevel(logging.DEBUG)
-else:
-    loggerJ.setLevel(logging.INFO)
-
-loggerJ.info(SCRIPT_NAME + ' Started !!! ' + SCRIPT_PATH + SCRIPT_NAME + '.py')
-loggerJ.debug('--------- DEBUG MODE STARTED ---------')
-
-IsFrontHigh = False
-FrontOnNb = 0
-FrontOffNb = 0
-GPIO.setmode(GPIO.BCM)
+import sys
+import os
 
 def IRSensor():
     global IsFrontHigh
@@ -118,6 +79,46 @@ def IRSensor():
     return 0
 
 if __name__ == "__main__":
+    pathFull = os.path.abspath(os.path.dirname(sys.argv[0]))
+
+    #
+    # Configuration
+    #
+    config = ConfigParser.RawConfigParser()
+    config.read(pathFull + "/compteurGaz.cfg")
+    
+    domoticz_ip = config.get("domoticz", "domoticz_ip")
+    domoticz_port = config.getint("domoticz", "domoticz_port")
+    counter_idx = config.getint("domoticz", "counter_idx")
+    switch_idx = config.getint("domoticz", "switch_idx")
+    IRPIN = config.getint("capteur", "IRPIN")
+    HIGH_LEVEL = config.getfloat("capteur", "HIGH_LEVEL")
+    LOW_LEVEL = config.getfloat("capteur", "LOW_LEVEL")
+    VOLUME_INC = config.getfloat("script", "VOLUME_INC")
+    TIME_INTERVAL = config.getfloat("script", "TIME_INTERVAL")
+    DEBUG = config.getboolean("script", "DEBUG")
+    SCRIPT_PATH = config.get("script", "SCRIPT_PATH")
+    SCRIPT_NAME = config.get("script", "SCRIPT_NAME")
+
+    # Logger
+    formatLog = logging.Formatter("%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s")
+    handlerLog = logging.handlers.RotatingFileHandler(SCRIPT_PATH + SCRIPT_NAME + ".log", mode="a", maxBytes= 1000000, backupCount= 3,encoding="utf-8")
+    handlerLog.setFormatter(formatLog)
+    loggerJ = logging.getLogger(SCRIPT_NAME)
+    loggerJ.addHandler(handlerLog)
+    if DEBUG:
+        loggerJ.setLevel(logging.DEBUG)
+    else:
+        loggerJ.setLevel(logging.INFO)
+
+    loggerJ.info(SCRIPT_NAME + ' Started !!! ' + SCRIPT_PATH + SCRIPT_NAME + '.py')
+    loggerJ.debug('--------- DEBUG MODE STARTED ---------')
+
+    IsFrontHigh = False
+    FrontOnNb = 0
+    FrontOffNb = 0
+    GPIO.setmode(GPIO.BCM)
+
     try:
         while True:
             IRSensor()
