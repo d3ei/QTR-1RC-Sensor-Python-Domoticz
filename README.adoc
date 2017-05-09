@@ -1,13 +1,12 @@
 = Capteur QTR-1RC IR Sensor Python Domoticz
 Doc Writer <d3ei33@gmail.com>
 v1.0, 2017-05
+:toc:
 :toc-title: Pour aller vite
 :imagesdir: /images/
 
 Un petit script python pour prendre en charge un capteur IR https://www.pololu.com/product/2459[QTR-1RC] branché sur une GPIO de raspberry pi et relever des compteurs - eau et gaz dans mon cas - qui possèdent un demi-disque réflechissant. +
 Le résultat est envoyé dans Domoticz.
-
-:toc:
 
 == Avant de commencer
 
