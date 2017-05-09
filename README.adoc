@@ -5,13 +5,13 @@ v1.0, 2017-05
 :toc-title: Pour aller vite
 :imagesdir: /images/
 
-Un petit script python pour prendre en charge un capteur IR https://www.pololu.com/product/2459[QTR-1RC] branché sur une GPIO de raspberry pi et relever des compteurs - eau et gaz dans mon cas - qui possède un demi-disque réflechissant. +
+Un petit script python pour prendre en charge un capteur IR https://www.pololu.com/product/2459[QTR-1RC] branché sur une GPIO de raspberry pi et relever des compteurs - eau et gaz dans mon cas - qui possèdent un demi-disque réflechissant. +
 Le résultat est envoyé dans Domoticz.
 
 == Avant de commencer
 
-Le truc est parti de l'envie de domotiser mes compteurs : eau, gaz et électricité. +
-Après avoir pensé à des solutions étranges à base de webcam et de reconnaissance de caractères, des solutions compliquées à mettre en oeuvre en intercalant des compteurs munis de détecteurs d'impulsions, des solutions trop onéreuses avec des capteurs d'impulsions "tout fait" à fixer sur les compteurs existants, j'ai fini par tomber sur des solutions vraiment pas chères à base de capteurs de réflectance. En cherchant un peu j'ai trouvé ce https://www.pololu.com/product/2459[QTR-1RC] qui a le gros avantage de pouvoir se brancher directement sur la raspberry pi : 5V, 0V et une GPIO :) sans passer par une carte supplémentaire type Arduino. +
+Ce machin est parti de l'envie de domotiser mes compteurs : eau, gaz et électricité. +
+Après avoir pensé à des solutions étranges à base de webcam et de reconnaissance de caractères, des solutions compliquées à mettre en oeuvre en intercalant des compteurs munis de détecteurs d'impulsions, des solutions trop onéreuses avec des capteurs d'impulsions "tout fait" à fixer sur les compteurs existants tout en ignorant si mes compteurs emettent des impulsions, j'ai fini par tomber sur des solutions vraiment abordables à base de capteurs de réflectance. En cherchant un peu j'ai trouvé ce https://www.pololu.com/product/2459[QTR-1RC] qui a le gros avantage de pouvoir se brancher directement sur la raspberry pi : 5V, 0V et une GPIO :) sans passer par une carte supplémentaire type Arduino. +
 
 Comme il est écrit dans la doc, la séquence pour lire un tel capteur est la suivante :
 
@@ -62,21 +62,10 @@ Un capteur QTR-1RC, un port GPIO (pull-down) de libre (GPIO17 et GPIO18 dans mon
 
 * Il faut bien sûr brancher le capteur sur la raspberry pi : alim 5V, terre et une GPIO. Et pour faire des tests vous devrez le promener au dessus de surfaces de réflectances différentes.
 
-* Placez le script ou vous voulez sur votre raspverry pi
+* Placer le script ou vous voulez sur votre raspverry pi.
 
-[source,python]
-----
-/home/pi/pyj/
-----
+* Modifier le fichier compteurGaz.cfg, dans le même dossier que le script.
 
-* Modifiez la ligne pour l'adapter à votre installation
-
-[source,python]
-----
-config.read("/home/pi/pyj/compteurGaz.cfg")
-----
-
-* Modifier le fichier compteurGaz.cfg
 * En activant le mode Debug dans le fichier de configuration,
 
 [source,python]
@@ -84,14 +73,14 @@ config.read("/home/pi/pyj/compteurGaz.cfg")
 DEBUG: True
 ----
 
-vous pouvez lancez un
+vous pouvez lancer un
 
 [source]
 ----
 python compteurGaz.py
 ----
 
-et observer le fichier de log qui affichera les temps de décharge du capteur et vous permettra de régler les deux valeurs de seuils :
+et observer le fichier de log qui affichera les temps de décharge du capteur et vous permettra de régler les deux valeurs seuils :
 
 [source,python]
 ----
@@ -102,7 +91,7 @@ LOW_LEVEL: 0.00013
 === Dans Domoticz
 
 Dans "Réglages/Matériels", vous devez créer un "Dummy (Does nothing, use for virtual switches only)". Et y ajouter deux capteurs virtuels : un compteur incrémental et un interrupteur. Le premier sert à mesurer la consommation (dernières 24h, mois, années) et le second peut être utile pour voir plus finement la consommation.
-Dans la liste des dispositifs, relever les Idx des deux nouveaux dispositifs et modifiez le fichier de configuration :
+Dans la liste des dispositifs, relevez les Idx des deux nouveaux dispositifs et modifiez le fichier de configuration :
 
 [source,python]
 ----
@@ -127,6 +116,12 @@ urllib.urlopen(requete)
 
 TIP: Pour lancer le script au démarrage du système, vous pouvez modifier votre fichier /etc/rc.local.
 
+=== Equilibrage
+
+Si au cours du temps vous constatez un écart entre la mesure du script et votre compteur réel, vous pouvez utiliser le script "compteurSetIndex.py" pour ajouter ou enlever des litres à votre compteur.
+
+WARNING: les numéros Idx des compteurs sont donnés à titre indicatif.
+
 == Contributions
 
 Vous pouvez lire ça si vous avez encore du temps https://gist.github.com/PurpleBooth/b24679402957c63ec426[CONTRIBUTING.md].
@@ -135,11 +130,15 @@ Vous pouvez lire ça si vous avez encore du temps https://gist.github.com/Purple
 
 GNU General Public License, mais alors vraiment faire plaisir à mon chat.
 
-== En plus ...
+== Thank's
 
 Merci à https://gist.github.com/anonymous/aec125315e0229f51affac5eeb6c0bc1[Toby] pour son code qui m'a bien servi.
 
+Merci à http://easydomoticz.com/forum/viewtopic.php?f=17&t=1737[js-martin] pour son article et ses précisions sur Domoticz.
+
 Des infos sur la http://deusyss.developpez.com/tutoriels/RaspberryPi/PythonEtLeGpio/[gestion des GPIO].
+
+== Photos
 
 .Compteur avec demi disque
 image::compteur.jpg[]
@@ -162,3 +161,9 @@ Le premier sur le capteur lui-même qui passait au dessus de la valeur haute san
 Le second sur la condition "GPIO.input(IRPIN)<=0" qui n'était de temps en temps jamais atteinte.
 
 Enfin le troisième sur la boucle "while GPIO.input(IRPIN)> 0" qui restait bloquée sur le "pass". Il semble que la connexion de la GPIO IN à la résistance de pull-down ne se fasse pas toujours : "GPIO.setup(IRPIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)". Du coup j'ai modifié le "pass" en "i += 1" et limité le nombre max d'itérations dans le cas du blocage. Je l'ai fixé à 1000, ce qui dans mon cas est largement suffisant sur ma Raspberry pi qui fait plafonner le compteur à 80 dans les plus longs temps de décharge. Mais si jamais vous faites tourner sur un Xéon dernier cri il faudra peut-être augmenter cette valeur. Ou encore mieux, trouver d'où vient le problème ;).
+
+== Bon et au final ???
+
+Au final le système fonctionne pas trop mal, j'ai des écarts entre la relève et le réel mais je peux suivre l'évolution et garder une idée assez précise de ma consommation en eau et en gaz ; et surtout scruter l'effet de modifications de ma gestion de consommation : changement de têtes de robinet, isolation, baisse du chauffage, ....
+
+Et bien sûr j'ai à présent le suivi à distance, ce qui peut être utile pendant les absences prolongées ; et les alertes gérées par Domoticz et enfin éviter de me retrouver avec un rattrapage de plus de 1000 € d'eau parce que le releveur adore passer pendant qu'il n'y a personne et que les factures ne prennent pas en compte les auto-relèves et s'appuient uniquement sur des estimations !!!
