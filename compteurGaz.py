@@ -97,12 +97,11 @@ if __name__ == "__main__":
     VOLUME_INC = config.getfloat("script", "VOLUME_INC")
     TIME_INTERVAL = config.getfloat("script", "TIME_INTERVAL")
     DEBUG = config.getboolean("script", "DEBUG")
-    SCRIPT_PATH = config.get("script", "SCRIPT_PATH")
     SCRIPT_NAME = config.get("script", "SCRIPT_NAME")
 
     # Logger
     formatLog = logging.Formatter("%(asctime)s -- %(name)s -- %(levelname)s -- %(message)s")
-    handlerLog = logging.handlers.RotatingFileHandler(SCRIPT_PATH + SCRIPT_NAME + ".log", mode="a", maxBytes= 1000000, backupCount= 3,encoding="utf-8")
+    handlerLog = logging.handlers.RotatingFileHandler(pathFull + "/" + SCRIPT_NAME + ".log", mode="a", maxBytes= 1000000, backupCount= 3,encoding="utf-8")
     handlerLog.setFormatter(formatLog)
     loggerJ = logging.getLogger(SCRIPT_NAME)
     loggerJ.addHandler(handlerLog)
@@ -111,7 +110,7 @@ if __name__ == "__main__":
     else:
         loggerJ.setLevel(logging.INFO)
 
-    loggerJ.info(SCRIPT_NAME + ' Started !!! ' + SCRIPT_PATH + SCRIPT_NAME + '.py')
+    loggerJ.info(SCRIPT_NAME + ' Started !!! ' + pathFull + '/' + SCRIPT_NAME + '.py')
     loggerJ.debug('--------- DEBUG MODE STARTED ---------')
 
     IsFrontHigh = False
